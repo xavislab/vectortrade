@@ -1,0 +1,21 @@
+# Project TODO
+
+- [x] Create original VectorTrade logo asset and favicon treatment
+- [x] Establish VectorTrade cyberpunk fintech design system and responsive global styling
+- [x] Build landing page with animated visual background, ticker strip, sticky navigation, hero, metrics, market cards, AI/copytrade section, roadmap, and footer
+- [x] Add simulated live market ticker with live/delayed/stale status behavior
+- [x] Build authenticated user dashboard shell with portfolio summary and activity views
+- [x] Build simulated crypto deposit flow with address display, confirmation states, and deposit history
+- [x] Add ledger data model for accounts, journal entries, deposits, holds, and audit events
+- [x] Add protected user procedures for dashboard, deposits, and activity
+- [x] Add admin dashboard with deposit review queue and controlled adjustment request workflow
+- [x] Enforce admin-only access and second-approval state for balance adjustments
+- [x] Add Vitest coverage for ledger balancing, duplicate deposits, access control, and adjustment approval rules
+- [x] Run type checks, tests, and visual verification at desktop and mobile widths
+- [x] Add Vercel setup documentation and clearly label demo-only financial data/custody integrations
+- [x] Package the complete project source and logo assets into a ZIP archive
+- [x] Add video-informed user dashboard modules for wallet, investment plans, withdrawals, KYC, referrals, support, and account settings
+- [x] Add video-informed admin modules for user management, KYC review, withdrawal review, plan configuration, messaging, and platform settings
+- [x] Preserve demo-only labeling and avoid misleading claims of real trading, custody, profits, payments, or social proof
+- [x] Apply the enriched shared user and admin interface to all ten branded variants and package refreshed ZIP archives
+- [x] Verify the enriched flows, update tests, and deliver the refreshed archives
