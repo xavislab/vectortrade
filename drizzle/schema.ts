@@ -4,12 +4,35 @@ export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
-  email: varchar("email", { length: 320 }),
+  email: varchar("email", { length: 320 }).unique(),
+  passwordHash: varchar("passwordHash", { length: 255 }),
+  preferredCurrency: varchar("preferredCurrency", { length: 8 }).default("USD").notNull(),
+  verificationStatus: mysqlEnum("verificationStatus", ["not_started", "pending", "approved", "rejected"]).default("not_started").notNull(),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+});
+
+export const authSessions = mysqlTable("auth_sessions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  tokenHash: varchar("tokenHash", { length: 128 }).notNull().unique(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const receivingAddresses = mysqlTable("receiving_addresses", {
+  id: int("id").autoincrement().primaryKey(),
+  asset: varchar("asset", { length: 24 }).notNull(),
+  network: varchar("network", { length: 40 }).notNull(),
+  address: varchar("address", { length: 160 }).notNull(),
+  memo: varchar("memo", { length: 128 }),
+  isActive: int("isActive").default(1).notNull(),
+  updatedBy: int("updatedBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
 export const depositIntents = mysqlTable("deposit_intents", {
@@ -96,5 +119,7 @@ export const auditEvents = mysqlTable("audit_events", {
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
+export type AuthSession = typeof authSessions.$inferSelect;
+export type ReceivingAddress = typeof receivingAddresses.$inferSelect;
 export type DepositIntent = typeof depositIntents.$inferSelect;
 export type AdjustmentRequest = typeof adjustmentRequests.$inferSelect;
