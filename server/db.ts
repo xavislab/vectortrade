@@ -31,6 +31,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 export async function getUserByOpenId(openId: string) { const db = await getDb(); if (!db) return undefined; return (await db.select().from(users).where(eq(users.openId, openId)).limit(1))[0]; }
 export async function getUserByEmail(email: string) { const db = await getDb(); if (!db) return undefined; return (await db.select().from(users).where(eq(users.email, email.toLowerCase())).limit(1))[0]; }
 
+export async function promoteUserByEmail(email: string) { const db = await getDb(); if (!db) throw new Error("Database unavailable"); await db.update(users).set({ role: "admin" }).where(eq(users.email, email.toLowerCase())); return getUserByEmail(email); }
+
 export async function createLocalUser(input: { name: string; email: string; passwordHash: string; preferredCurrency: string }) {
   const db = await getDb(); if (!db) throw new Error("Database unavailable");
   const openId = `local_${crypto.randomUUID()}`;
