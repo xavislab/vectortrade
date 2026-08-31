@@ -311,3 +311,8 @@ main > *:not(.ambient-grid):not(.noise-layer) { position: relative; z-index: 2; 
 .market-data-alert span { flex: 1; }
 .market-data-alert button { border: 1px solid rgba(255,184,93,.35); border-radius: 5px; padding: 7px 9px; color: #ffe5be; background: transparent; font: 700 9px 'DM Mono', monospace; }
 .market-data-alert button:hover { background: rgba(255,184,93,.12); }
+
+.auth-brand-lockup { display: inline-flex; align-items: center; gap: 10px; color: #f5f7ff; font: 800 15px 'Syne', sans-serif; letter-spacing: .08em; }
+.auth-brand-lockup .brand-mark { width: 34px; height: 34px; display: grid; place-items: center; overflow: hidden; border: 1px solid rgba(69,230,255,.55); border-radius: 10px; background: rgba(22,29,73,.92); box-shadow: 0 0 25px rgba(69,230,255,.2); }
+.auth-brand-lockup .brand-mark img { display: block; width: 29px; height: 29px; object-fit: contain; }
+@media (max-width: 600px) { .auth-brand-lockup { font-size: 13px; } .auth-brand-lockup .brand-mark { width: 31px; height: 31px; } .auth-brand-lockup .brand-mark img { width: 26px; height: 26px; } }

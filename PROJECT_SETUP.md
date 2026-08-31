@@ -83,3 +83,9 @@ BREVO_SENDER_NAME=VectorTrade
 ```
 
 Supabase Auth manages the email-confirmation identity, while the application backend synchronizes the verified user into the VectorTrade profile and session model. Apply the latest SQL migration before testing registration, subscription requests, deposit intents, verification submissions, or admin receiving-address configuration.
+
+## Supabase verification code email
+
+To send a six-digit code instead of a clickable confirmation link, open Supabase **Authentication → Email Templates → Confirm signup** and make the message include `{{ .Token }}` as the verification code. Do not use only `{{ .ConfirmationURL }}`. Keep the VectorTrade `/auth` OTP modal enabled; it verifies the code with `verifyOtp({ email, token, type: "signup" })`. The same configuration can be applied to the email-change template if email changes are enabled later.
+
+If the template still contains only the confirmation URL, Supabase will continue sending a link. This is controlled by the Supabase email template and cannot be changed by frontend JavaScript.
