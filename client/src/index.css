@@ -306,3 +306,8 @@ main > *:not(.ambient-grid):not(.noise-layer) { position: relative; z-index: 2; 
 .market-note-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 22px; }
 .market-note-tags span { display: inline-flex; align-items: center; gap: 6px; padding: 7px 9px; color: #9ca9cf; border: 1px solid rgba(107,130,216,.2); border-radius: 6px; font: 8px 'DM Mono', monospace; }
 @media (max-width: 720px) { .market-header, .market-shell { width: calc(100% - 30px); }.market-header { gap: 12px; }.market-header nav { order: 3; flex-basis: 100%; overflow-x: auto; }.market-header { flex-wrap: wrap; height: auto; padding: 17px 0; }.market-terminal { margin-left: auto; }.market-title-row { align-items: flex-start; flex-direction: column; }.market-workspace, .market-bottom-grid { grid-template-columns: 1fr; }.market-watchlist, .strategy-panel { grid-column: auto; }.market-chart-large { height: 250px; }.market-stats { grid-template-columns: repeat(2,1fr); }.market-lock { align-items: flex-start; flex-wrap: wrap; }.market-lock .primary-admin { margin-left: 34px; width: calc(100% - 34px); } }
+
+.market-data-alert { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; padding: 12px 14px; border: 1px solid rgba(255,184,93,.25); border-radius: 10px; background: rgba(255,184,93,.07); color: #ffd7a3; font: 10px/1.5 'DM Mono', monospace; }
+.market-data-alert span { flex: 1; }
+.market-data-alert button { border: 1px solid rgba(255,184,93,.35); border-radius: 5px; padding: 7px 9px; color: #ffe5be; background: transparent; font: 700 9px 'DM Mono', monospace; }
+.market-data-alert button:hover { background: rgba(255,184,93,.12); }
