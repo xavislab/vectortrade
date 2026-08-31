@@ -23,6 +23,17 @@ export const authSessions = mysqlTable("auth_sessions", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+export const subscriptions = mysqlTable("subscriptions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  plan: varchar("plan", { length: 96 }).notNull(),
+  status: mysqlEnum("status", ["pending", "active", "paused", "cancelled"]).default("pending").notNull(),
+  startedAt: timestamp("startedAt"),
+  expiresAt: timestamp("expiresAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 export const receivingAddresses = mysqlTable("receiving_addresses", {
   id: int("id").autoincrement().primaryKey(),
   asset: varchar("asset", { length: 24 }).notNull(),
@@ -120,6 +131,7 @@ export const auditEvents = mysqlTable("audit_events", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type AuthSession = typeof authSessions.$inferSelect;
+export type Subscription = typeof subscriptions.$inferSelect;
 export type ReceivingAddress = typeof receivingAddresses.$inferSelect;
 export type DepositIntent = typeof depositIntents.$inferSelect;
 export type AdjustmentRequest = typeof adjustmentRequests.$inferSelect;

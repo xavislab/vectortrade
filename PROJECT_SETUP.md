@@ -58,3 +58,30 @@ Do not place database credentials, auth secrets, custody credentials, or wallet 
 ## Recommended next production steps
 
 Connect a custody provider or HSM/MPC wallet service without exposing private keys to the application server. Add a chain indexer with idempotency and reorganization handling. Complete double-entry posting and reconciliation. Add KYC, sanctions, transaction monitoring, travel-rule handling where applicable, customer disclosures, privacy retention controls, incident response, and independent security review. Keep the demo banner until all of those controls are in place.
+
+## Supabase and Brevo authentication
+
+The browser authentication client is configured through `client/src/lib/supabase.ts` and uses `VITE_SUPABASE_URL` plus `VITE_SUPABASE_ANON_KEY`. The supplied Supabase project URL and publishable key are included as safe local defaults; Vercel environment variables should be used for production overrides.
+
+In Supabase, enable email authentication and OTP signup verification under **Authentication → Providers → Email**. Set the production site URL and redirect URL to the deployed Vercel origin. To deliver verification messages through Brevo, configure Supabase’s custom SMTP settings with Brevo’s SMTP relay and a verified sender identity. The Brevo API key belongs only in the server/provider configuration; it must not be placed in frontend code or any `VITE_*` variable. The OTP modal is rendered by the VectorTrade `/auth` flow after Supabase returns a signup requiring confirmation.
+
+Required Vercel frontend variables:
+
+```text
+VITE_SUPABASE_URL=https://fdzstpbpgriorwtcrigm.supabase.co
+VITE_SUPABASE_ANON_KEY=<supabase-publishable-key>
+VITE_API_BASE_URL=<deployed-express-api-origin>
+```
+
+Required backend variables:
+
+```text
+DATABASE_URL=<managed-mysql-url>
+JWT_SECRET=<long-random-secret>
+ADMIN_EMAIL=<initial-admin-email>
+BREVO_API_KEY=<server-only-brevo-key-if-direct-email-api-is-used>
+BREVO_SENDER_EMAIL=<verified-brevo-sender>
+BREVO_SENDER_NAME=VectorTrade
+```
+
+Supabase Auth manages the email-confirmation identity, while the application backend synchronizes the verified user into the VectorTrade profile and session model. Apply the latest SQL migration before testing registration, subscription requests, deposit intents, verification submissions, or admin receiving-address configuration.

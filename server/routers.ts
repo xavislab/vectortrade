@@ -5,7 +5,7 @@ import { clearSession, hashPassword, setSessionCookie, signInWithPassword } from
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { approveAdjustmentRequest, createAdjustmentRequest, createDepositIntent, createLocalUser, getReceivingAddress, getUserDashboard, getUserByEmail, listAllDeposits, listReceivingAddresses, listUserActivity, listUserDeposits, updateUserProfile, upsertReceivingAddress } from "./db";
+import { approveAdjustmentRequest, createAdjustmentRequest, createDepositIntent, createLocalUser, getReceivingAddress, getUserDashboard, getUserByEmail, listAllDeposits, listReceivingAddresses, listUserActivity, listUserDeposits, getSubscription, requestSubscription, updateUserProfile, upsertReceivingAddress } from "./db";
 
 const currency = z.enum(["USD", "EUR", "GBP", "NGN", "CAD", "AUD"]);
 const credentials = z.object({ email: z.string().email().max(320), password: z.string().min(8).max(128) });
@@ -36,6 +36,10 @@ export const appRouter = router({
   dashboard: router({
     summary: protectedProcedure.query(({ ctx }) => getUserDashboard(ctx.user.id)),
     activity: protectedProcedure.query(({ ctx }) => listUserActivity(ctx.user.id)),
+  }),
+  subscriptions: router({
+    current: protectedProcedure.query(({ ctx }) => getSubscription(ctx.user.id)),
+    request: protectedProcedure.input(z.object({ plan: z.string().min(2).max(96) })).mutation(({ ctx, input }) => requestSubscription(ctx.user.id, input.plan)),
   }),
   deposits: router({
     listMine: protectedProcedure.query(({ ctx }) => listUserDeposits(ctx.user.id)),
