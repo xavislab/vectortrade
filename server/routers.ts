@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME } from "../shared/const";
 import { clearSession, hashPassword, setSessionCookie, signInWithPassword } from "./auth";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { ENV } from "./_core/env";
