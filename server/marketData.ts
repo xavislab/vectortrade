@@ -1,4 +1,4 @@
-import { ENV } from "./_core/env";
+import { ENV } from "./_core/env.js";
 
 type MarketKey = "crypto" | "forex" | "stocks" | "memecoins";
 type MarketItem = { symbol: string; price: string; change: string; source: string; url?: string; liquidity?: number };

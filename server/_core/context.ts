@@ -1,8 +1,8 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import type { CreateHTTPContextOptions } from "@trpc/server/adapters/standalone";
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
-import type { User } from "../../drizzle/schema";
-import { getRequestUser } from "../auth";
+import type { User } from "../../drizzle/schema.js";
+import { getRequestUser } from "../auth.js";
 
 export type TrpcContext = {
   req: CreateExpressContextOptions["req"];

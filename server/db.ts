@@ -1,7 +1,7 @@
 import { and, desc, eq, gt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { adjustmentRequests, auditEvents, authSessions, depositIntents, InsertUser, receivingAddresses, subscriptions, users } from "../drizzle/schema";
-import { ENV } from "./_core/env";
+import { adjustmentRequests, auditEvents, authSessions, depositIntents, InsertUser, receivingAddresses, subscriptions, users } from "../drizzle/schema.js";
+import { ENV } from "./_core/env.js";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 

@@ -1,17 +1,38 @@
-async function diagnoseRouterImport() {
+async function handle(request: Request) {
   try {
-    const module = await import("../../server/routers");
-    return Response.json({ ok: true, router: Boolean(module.appRouter) });
+    const [{ fetchRequestHandler }, { appRouter }, { createFetchContext }] = await Promise.all([
+      import("@trpc/server/adapters/fetch"),
+      import("../../server/routers.js"),
+      import("../../server/_core/context.js"),
+    ]);
+
+    return await fetchRequestHandler({
+      endpoint: "/api/trpc",
+      req: request,
+      router: appRouter,
+      createContext: createFetchContext,
+    });
   } catch (error) {
-    console.error("[tRPC] router import failed", error);
-    return Response.json({ ok: false, error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined }, { status: 500 });
+    console.error("[tRPC] request failed", error);
+    return Response.json(
+      {
+        error: {
+          json: {
+            message: error instanceof Error ? error.message : "Internal API error",
+            code: -32603,
+            data: { code: "INTERNAL_SERVER_ERROR", httpStatus: 500 },
+          },
+        },
+      },
+      { status: 500 },
+    );
   }
 }
 
-export function GET() {
-  return diagnoseRouterImport();
+export function GET(request: Request) {
+  return handle(request);
 }
 
-export function POST() {
-  return diagnoseRouterImport();
+export function POST(request: Request) {
+  return handle(request);
 }

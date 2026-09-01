@@ -2,9 +2,9 @@ import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } fr
 import { promisify } from "node:util";
 import type { Request, Response } from "express";
 import type { ServerResponse } from "node:http";
-import { COOKIE_NAME } from "../shared/const";
-import { getSessionCookieOptions } from "./_core/cookies";
-import { createAuthSession, deleteAuthSession, getUserByEmail, getUserBySessionHash } from "./db";
+import { COOKIE_NAME } from "../shared/const.js";
+import { getSessionCookieOptions } from "./_core/cookies.js";
+import { createAuthSession, deleteAuthSession, getUserByEmail, getUserBySessionHash } from "./db.js";
 
 const scrypt = promisify(scryptCallback);
 const SESSION_DAYS = 30;

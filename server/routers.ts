@@ -1,14 +1,14 @@
 import { timingSafeEqual } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { COOKIE_NAME } from "../shared/const";
-import { clearSession, hashPassword, setSessionCookie, signInWithPassword } from "./auth";
-import { getSessionCookieOptions } from "./_core/cookies";
-import { ENV } from "./_core/env";
-import { systemRouter } from "./_core/systemRouter";
-import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { getLiveMarketSnapshot } from "./marketData";
-import { approveAdjustmentRequest, bootstrapAdminByEmail, createAdjustmentRequest, createDepositIntent, createLocalUser, getReceivingAddress, getUserDashboard, getUserByEmail, listAllDeposits, listReceivingAddresses, listUserActivity, listUserDeposits, getSubscription, requestSubscription, updateUserProfile, upsertReceivingAddress } from "./db";
+import { COOKIE_NAME } from "../shared/const.js";
+import { clearSession, hashPassword, setSessionCookie, signInWithPassword } from "./auth.js";
+import { getSessionCookieOptions } from "./_core/cookies.js";
+import { ENV } from "./_core/env.js";
+import { systemRouter } from "./_core/systemRouter.js";
+import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc.js";
+import { getLiveMarketSnapshot } from "./marketData.js";
+import { approveAdjustmentRequest, bootstrapAdminByEmail, createAdjustmentRequest, createDepositIntent, createLocalUser, getReceivingAddress, getUserDashboard, getUserByEmail, listAllDeposits, listReceivingAddresses, listUserActivity, listUserDeposits, getSubscription, requestSubscription, updateUserProfile, upsertReceivingAddress } from "./db.js";
 
 const currency = z.enum(["USD", "EUR", "GBP", "NGN", "CAD", "AUD"]);
 const credentials = z.object({ email: z.string().email().max(320), password: z.string().min(8).max(128) });
