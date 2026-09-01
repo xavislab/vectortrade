@@ -33,9 +33,9 @@ The ledger design is append-only. A correction should create an adjustment reque
 
 ## Admin access
 
-Open the administrator login directly at `https://vectortrade-two.vercel.app/admin/login`. Sign in with the credentials configured through `ADMIN_EMAIL` and `ADMIN_PASSWORD`. The backend creates or promotes that account to the `admin` role during administrator login. After authentication, the console is available at `/admin`, including receiving-address configuration under **Platform settings**.
+Open the administrator login directly at `https://vectortrade-two.vercel.app/admin/login`. Enter the private access code configured through `ADMIN_ACCESS_CODE`. The backend creates or promotes the account identified by `ADMIN_EMAIL` to the `admin` role during access-code login. After authentication, the console is available at `/admin`, including receiving-address configuration under **Platform settings**.
 
-Keep `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and `JWT_SECRET` server-side only. Never place them in frontend code or `VITE_*` variables.
+Keep `ADMIN_EMAIL`, `ADMIN_ACCESS_CODE`, and `JWT_SECRET` server-side only. Never place them in frontend code or `VITE_*` variables.
 
 ## Brand asset
 
@@ -77,6 +77,7 @@ Required backend variables:
 DATABASE_URL=<managed-mysql-url>
 JWT_SECRET=<long-random-secret>
 ADMIN_EMAIL=<initial-admin-email>
+ADMIN_ACCESS_CODE=<long-random-private-code>
 BREVO_API_KEY=<server-only-brevo-key-if-direct-email-api-is-used>
 BREVO_SENDER_EMAIL=<verified-brevo-sender>
 BREVO_SENDER_NAME=VectorTrade
@@ -86,6 +87,6 @@ Supabase Auth manages the email-confirmation identity, while the application bac
 
 ## Supabase verification code email
 
-To send a six-digit code instead of a clickable confirmation link, open Supabase **Authentication → Email Templates → Confirm signup** and make the message include `{{ .Token }}` as the verification code. Do not use only `{{ .ConfirmationURL }}`. Keep the VectorTrade `/auth` OTP modal enabled; it verifies the code with `verifyOtp({ email, token, type: "signup" })`. The same configuration can be applied to the email-change template if email changes are enabled later.
+To send a verification code instead of a clickable confirmation link, open Supabase **Authentication → Email Templates → Confirm signup** and make the message include `{{ .Token }}` as the verification code. Do not use only `{{ .ConfirmationURL }}`. Keep the VectorTrade `/auth` OTP modal enabled; it verifies the code with `verifyOtp({ email, token, type: "signup" })`. The same configuration can be applied to the email-change template if email changes are enabled later.
 
 If the template still contains only the confirmation URL, Supabase will continue sending a link. This is controlled by the Supabase email template and cannot be changed by frontend JavaScript.

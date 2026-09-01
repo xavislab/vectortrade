@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { COOKIE_NAME } from "../shared/const";
@@ -22,6 +23,21 @@ export const appRouter = router({
       if (!user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to create account" });
       const signedIn = await signInWithPassword(input.email, input.password);
       if (!signedIn) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to start account session" });
+      setSessionCookie(ctx.req, ctx.res, signedIn.token);
+      return signedIn.user;
+    }),
+    adminCodeLogin: publicProcedure.input(z.object({ accessCode: z.string().min(6).max(128) })).mutation(async ({ ctx, input }) => {
+      if (!ENV.adminAccessCode) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Administrator access is not configured" });
+      const provided = Buffer.from(input.accessCode);
+      const expected = Buffer.from(ENV.adminAccessCode);
+      if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) throw new TRPCError({ code: "UNAUTHORIZED", message: "Administrator access code is incorrect" });
+      if (!ENV.adminEmail) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Administrator identity is not configured" });
+      const existing = await getUserByEmail(ENV.adminEmail);
+      const passwordHash = await hashPassword(input.accessCode);
+      if (!existing) await createLocalUser({ name: "VectorTrade Administrator", email: ENV.adminEmail, passwordHash, preferredCurrency: "USD" });
+      else await bootstrapAdminByEmail(ENV.adminEmail, passwordHash);
+      const signedIn = await signInWithPassword(ENV.adminEmail, input.accessCode);
+      if (!signedIn) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to start administrator session" });
       setSessionCookie(ctx.req, ctx.res, signedIn.token);
       return signedIn.user;
     }),
