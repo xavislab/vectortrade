@@ -32,6 +32,7 @@ export async function getUserByOpenId(openId: string) { const db = await getDb()
 export async function getUserByEmail(email: string) { const db = await getDb(); if (!db) return undefined; return (await db.select().from(users).where(eq(users.email, email.toLowerCase())).limit(1))[0]; }
 
 export async function promoteUserByEmail(email: string) { const db = await getDb(); if (!db) throw new Error("Database unavailable"); await db.update(users).set({ role: "admin" }).where(eq(users.email, email.toLowerCase())); return getUserByEmail(email); }
+export async function bootstrapAdminByEmail(email: string, passwordHash: string) { const db = await getDb(); if (!db) throw new Error("Database unavailable"); await db.update(users).set({ role: "admin", passwordHash, loginMethod: "password" }).where(eq(users.email, email.toLowerCase())); return getUserByEmail(email); }
 
 export async function createLocalUser(input: { name: string; email: string; passwordHash: string; preferredCurrency: string }) {
   const db = await getDb(); if (!db) throw new Error("Database unavailable");

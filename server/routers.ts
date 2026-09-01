@@ -7,7 +7,7 @@ import { ENV } from "./_core/env";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { getLiveMarketSnapshot } from "./marketData";
-import { approveAdjustmentRequest, createAdjustmentRequest, createDepositIntent, createLocalUser, getReceivingAddress, getUserDashboard, getUserByEmail, listAllDeposits, listReceivingAddresses, listUserActivity, listUserDeposits, getSubscription, requestSubscription, promoteUserByEmail, updateUserProfile, upsertReceivingAddress } from "./db";
+import { approveAdjustmentRequest, bootstrapAdminByEmail, createAdjustmentRequest, createDepositIntent, createLocalUser, getReceivingAddress, getUserDashboard, getUserByEmail, listAllDeposits, listReceivingAddresses, listUserActivity, listUserDeposits, getSubscription, requestSubscription, updateUserProfile, upsertReceivingAddress } from "./db";
 
 const currency = z.enum(["USD", "EUR", "GBP", "NGN", "CAD", "AUD"]);
 const credentials = z.object({ email: z.string().email().max(320), password: z.string().min(8).max(128) });
@@ -27,10 +27,11 @@ export const appRouter = router({
     }),
     login: publicProcedure.input(credentials).mutation(async ({ ctx, input }) => {
       let signedIn = await signInWithPassword(input.email, input.password);
-      if (!signedIn && ENV.adminEmail && ENV.adminPassword && input.email.toLowerCase() === ENV.adminEmail && input.password === ENV.adminPassword) {
+      if (ENV.adminEmail && ENV.adminPassword && input.email.toLowerCase() === ENV.adminEmail && input.password === ENV.adminPassword) {
         const existing = await getUserByEmail(input.email);
-        if (!existing) await createLocalUser({ name: "VectorTrade Administrator", email: input.email, passwordHash: await hashPassword(input.password), preferredCurrency: "USD" });
-        else if (existing.role !== "admin") await promoteUserByEmail(input.email);
+        const passwordHash = await hashPassword(input.password);
+        if (!existing) await createLocalUser({ name: "VectorTrade Administrator", email: input.email, passwordHash, preferredCurrency: "USD" });
+        else await bootstrapAdminByEmail(input.email, passwordHash);
         signedIn = await signInWithPassword(input.email, input.password);
       }
       if (!signedIn) throw new TRPCError({ code: "UNAUTHORIZED", message: "Email or password is incorrect" });
