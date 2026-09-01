@@ -33,12 +33,13 @@ export async function signInWithPassword(email: string, password: string) {
   return { user, token };
 }
 
-type CookieResponse = Response | ServerResponse;
+type CookieResponse = Response | ServerResponse | Headers;
 
 function requestCookie(req: Request) {
   const helperCookie = (req as Request & { cookies?: Record<string, string> }).cookies?.[COOKIE_NAME];
   if (helperCookie) return helperCookie;
-  const header = req.headers.cookie;
+  const headers = req.headers as unknown as Headers & { cookie?: string };
+  const header = typeof headers.get === "function" ? headers.get("cookie") : headers.cookie;
   if (!header) return undefined;
   const pair = header.split(";").map(value => value.trim()).find(value => value.startsWith(`${COOKIE_NAME}=`));
   return pair ? decodeURIComponent(pair.slice(COOKIE_NAME.length + 1)) : undefined;
@@ -53,10 +54,12 @@ function serializeSessionCookie(value: string, maxAge: number) {
 function writeSessionCookie(req: Request, res: CookieResponse, value: string, maxAge: number) {
   const options = getSessionCookieOptions(req);
   const serialized = serializeSessionCookie(value, maxAge);
-  if (typeof (res as Response).cookie === "function") {
+  if (typeof Headers !== "undefined" && res instanceof Headers) {
+    res.append("Set-Cookie", serialized);
+  } else if (typeof (res as Response).cookie === "function") {
     (res as Response).cookie(COOKIE_NAME, value, { ...options, maxAge });
   } else {
-    res.setHeader("Set-Cookie", serialized);
+    (res as ServerResponse).setHeader("Set-Cookie", serialized);
   }
 }
 
@@ -74,9 +77,12 @@ export async function clearSession(req: Request, res: CookieResponse) {
   const token = requestCookie(req);
   if (token) await deleteAuthSession(hashToken(token));
   const options = getSessionCookieOptions(req);
-  if (typeof (res as Response).clearCookie === "function") {
+  const serialized = serializeSessionCookie("", 0);
+  if (typeof Headers !== "undefined" && res instanceof Headers) {
+    res.append("Set-Cookie", serialized);
+  } else if (typeof (res as Response).clearCookie === "function") {
     (res as Response).clearCookie(COOKIE_NAME, { ...options, maxAge: -1 });
   } else {
-    res.setHeader("Set-Cookie", serializeSessionCookie("", 0));
+    (res as ServerResponse).setHeader("Set-Cookie", serialized);
   }
 }

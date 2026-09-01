@@ -1,13 +1,14 @@
-import { createHTTPHandler } from "@trpc/server/adapters/standalone";
+import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { appRouter } from "../../server/routers";
-import { createNodeContext } from "../../server/_core/context";
+import { createFetchContext } from "../../server/_core/context";
 
-const trpcHandler = createHTTPHandler({
-  router: appRouter,
-  createContext: createNodeContext,
-  basePath: "/api/trpc/",
-});
-
-export default function handler(req: Parameters<typeof trpcHandler>[0], res: Parameters<typeof trpcHandler>[1]) {
-  return trpcHandler(req, res);
-}
+export default {
+  async fetch(request: Request) {
+    return fetchRequestHandler({
+      endpoint: "/api/trpc",
+      req: request,
+      router: appRouter,
+      createContext: createFetchContext,
+    });
+  },
+};
