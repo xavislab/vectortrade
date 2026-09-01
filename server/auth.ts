@@ -1,6 +1,7 @@
 import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 import type { Request, Response } from "express";
+import type { ServerResponse } from "node:http";
 import { COOKIE_NAME } from "../shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { createAuthSession, deleteAuthSession, getUserByEmail, getUserBySessionHash } from "./db";
@@ -32,18 +33,50 @@ export async function signInWithPassword(email: string, password: string) {
   return { user, token };
 }
 
+type CookieResponse = Response | ServerResponse;
+
+function requestCookie(req: Request) {
+  const helperCookie = (req as Request & { cookies?: Record<string, string> }).cookies?.[COOKIE_NAME];
+  if (helperCookie) return helperCookie;
+  const header = req.headers.cookie;
+  if (!header) return undefined;
+  const pair = header.split(";").map(value => value.trim()).find(value => value.startsWith(`${COOKIE_NAME}=`));
+  return pair ? decodeURIComponent(pair.slice(COOKIE_NAME.length + 1)) : undefined;
+}
+
+function serializeSessionCookie(value: string, maxAge: number) {
+  const attributes = [`${COOKIE_NAME}=${encodeURIComponent(value)}`, `Max-Age=${Math.max(0, Math.floor(maxAge / 1000))}`, "Path=/", "HttpOnly", "SameSite=None"];
+  if (process.env.NODE_ENV === "production") attributes.push("Secure");
+  return attributes.join("; ");
+}
+
+function writeSessionCookie(req: Request, res: CookieResponse, value: string, maxAge: number) {
+  const options = getSessionCookieOptions(req);
+  const serialized = serializeSessionCookie(value, maxAge);
+  if (typeof (res as Response).cookie === "function") {
+    (res as Response).cookie(COOKIE_NAME, value, { ...options, maxAge });
+  } else {
+    res.setHeader("Set-Cookie", serialized);
+  }
+}
+
 export async function getRequestUser(req: Request) {
-  const token = req.cookies?.[COOKIE_NAME] as string | undefined;
+  const token = requestCookie(req);
   if (!token) return null;
   return (await getUserBySessionHash(hashToken(token))) ?? null;
 }
 
-export function setSessionCookie(req: Request, res: Response, token: string) {
-  res.cookie(COOKIE_NAME, token, { ...getSessionCookieOptions(req), maxAge: SESSION_DAYS * 86400000 });
+export function setSessionCookie(req: Request, res: CookieResponse, token: string) {
+  writeSessionCookie(req, res, token, SESSION_DAYS * 86400000);
 }
 
-export async function clearSession(req: Request, res: Response) {
-  const token = req.cookies?.[COOKIE_NAME] as string | undefined;
+export async function clearSession(req: Request, res: CookieResponse) {
+  const token = requestCookie(req);
   if (token) await deleteAuthSession(hashToken(token));
-  res.clearCookie(COOKIE_NAME, { ...getSessionCookieOptions(req), maxAge: -1 });
+  const options = getSessionCookieOptions(req);
+  if (typeof (res as Response).clearCookie === "function") {
+    (res as Response).clearCookie(COOKIE_NAME, { ...options, maxAge: -1 });
+  } else {
+    res.setHeader("Set-Cookie", serializeSessionCookie("", 0));
+  }
 }
