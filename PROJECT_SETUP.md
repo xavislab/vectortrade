@@ -33,9 +33,9 @@ The ledger design is append-only. A correction should create an adjustment reque
 
 ## Admin access
 
-Open the administrator login directly at `https://vectortrade-two.vercel.app/admin/login`. Enter the private access code configured through `ADMIN_ACCESS_CODE`. The backend creates or promotes the account identified by `ADMIN_EMAIL` to the `admin` role during access-code login. After authentication, the console is available at `/admin`, including receiving-address configuration under **Platform settings**.
+The admin interface is temporarily open for visual inspection at `https://vectortrade-two.vercel.app/admin`. The former `/admin/login` path now displays the same interface. This inspection mode removes the frontend login screen, but backend admin procedures remain role-protected and may return authorization errors until a valid administrator session is restored.
 
-Keep `ADMIN_EMAIL`, `ADMIN_ACCESS_CODE`, and `JWT_SECRET` server-side only. Never place them in frontend code or `VITE_*` variables.
+Before any real deployment or customer use, restore the `AdminGate` role check in `client/src/App.tsx` and restore the administrator access-code route. Never expose the operations console or privileged procedures publicly in a production environment.
 
 ## Brand asset
 
