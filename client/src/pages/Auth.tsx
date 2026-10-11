@@ -37,12 +37,15 @@ export default function Auth({ adminMode = false }: { adminMode?: boolean }) {
       }
       if (password.length < 8) throw new Error("Use at least 8 characters for your password.");
       if (mode === "register" && !adminMode) {
-        const { error: supabaseError } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name, preferred_currency: preferredCurrency } } });
-        if (supabaseError) throw supabaseError;
+        // The VectorTrade API is the source of truth for accounts and sessions.
         await register.mutateAsync({ name, email, password, preferredCurrency });
+        // Mirror the account into Supabase Auth without blocking signup if Supabase or its mailer is unavailable.
+        const { error: supabaseError } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name, preferred_currency: preferredCurrency } } });
+        if (supabaseError) console.warn("[Supabase] signUp mirror failed:", supabaseError.message);
       } else {
         await login.mutateAsync({ email, password });
-        await supabase.auth.signInWithPassword({ email, password });
+        const { error: supabaseLoginError } = await supabase.auth.signInWithPassword({ email, password });
+        if (supabaseLoginError) console.warn("[Supabase] signIn mirror failed:", supabaseLoginError.message);
       }
       setLocation(next.startsWith("/") ? next : "/terminal");
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Unable to complete authentication."); }
