@@ -20,3 +20,11 @@ export function isValidTestnetAddress(network: string, address: string) {
   if (network === "Solana Devnet") return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value);
   return false;
 }
+
+export function isValidTestnetTxHash(network: string, txHash: string) {
+  const value = txHash.trim();
+  if (network === "Bitcoin Testnet4") return /^[0-9a-fA-F]{64}$/.test(value);
+  if (network === "Ethereum Sepolia" || network === "Polygon Amoy") return /^0x[0-9a-fA-F]{64}$/.test(value);
+  if (network === "Solana Devnet") return /^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(value);
+  return false;
+}
