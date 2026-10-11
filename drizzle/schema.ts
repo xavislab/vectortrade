@@ -128,6 +128,23 @@ export const auditEvents = pgTable("audit_events", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+export const withdrawalRequests = pgTable("withdrawal_requests", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  asset: varchar("asset", { length: 24 }).notNull(),
+  network: varchar("network", { length: 40 }).notNull(),
+  address: varchar("address", { length: 160 }).notNull(),
+  amount: numeric("amount", { precision: 32, scale: 12 }).notNull(),
+  status: text("status", { enum: ["pending", "approved", "rejected", "sent"] }).default("pending").notNull(),
+  reviewNote: text("reviewNote"),
+  reviewedBy: integer("reviewedBy"),
+  reviewedAt: timestamp("reviewedAt"),
+  txHash: varchar("txHash", { length: 160 }),
+  sentAt: timestamp("sentAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type WithdrawalRequest = typeof withdrawalRequests.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type AuthSession = typeof authSessions.$inferSelect;
