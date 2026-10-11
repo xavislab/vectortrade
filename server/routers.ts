@@ -18,6 +18,8 @@ export const appRouter = router({
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     register: publicProcedure.input(z.object({ name: z.string().trim().min(2).max(120), email: z.string().email().max(320), password: z.string().min(8).max(128), preferredCurrency: currency })).mutation(async ({ ctx, input }) => {
+      const normalizedEmail = input.email.trim().toLowerCase();
+      if (!ENV.signupAllowlist.includes(normalizedEmail) && normalizedEmail !== ENV.adminEmail) throw new TRPCError({ code: "FORBIDDEN", message: "Registration is closed while VectorTrade is in private testing" });
       if (await getUserByEmail(input.email)) throw new TRPCError({ code: "CONFLICT", message: "An account with this email already exists" });
       const user = await createLocalUser({ name: input.name, email: input.email, passwordHash: await hashPassword(input.password), preferredCurrency: input.preferredCurrency });
       if (!user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to create account" });
