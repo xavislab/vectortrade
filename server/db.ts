@@ -1,7 +1,7 @@
 import { and, desc, eq, gt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { adjustmentRequests, auditEvents, authSessions, depositIntents, InsertUser, receivingAddresses, subscriptions, users } from "../drizzle/schema.js";
+import { adjustmentRequests, auditEvents, authSessions, depositIntents, InsertUser, receivingAddresses, subscriptions, users, withdrawalRequests } from "../drizzle/schema.js";
 import { ENV } from "./_core/env.js";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -96,3 +96,39 @@ export async function requestSubscription(userId: number, plan: string) { const 
 export async function getUserDashboard(userId: number) { const user = await getUserById(userId); const deposits = await listUserDeposits(userId); return { totalEquity: "0.00", availableBalance: "0.00", unrealizedPnl: "0.00", currency: user?.preferredCurrency ?? "USD", verificationStatus: user?.verificationStatus ?? "not_started", deposits, environment: "account" as const }; }
 export async function getUserById(userId: number) { const db = await getDb(); if (!db) return undefined; return (await db.select().from(users).where(eq(users.id, userId)).limit(1))[0]; }
 export async function listUserActivity(userId: number) { const deposits = await listUserDeposits(userId); return deposits.map(deposit => ({ id: deposit.id, type: "deposit" as const, title: `${deposit.asset} deposit`, detail: `${deposit.txHash ?? "Awaiting transaction"} · ${deposit.status}`, amount: deposit.amount ?? "0", createdAt: deposit.createdAt })); }
+
+export async function createWithdrawalRequest(input: { userId: number; asset: string; network: string; address: string; amount: string }) {
+  const db = await getDb(); if (!db) throw new Error("Database unavailable");
+  return db.transaction(async tx => {
+    const rows = await tx.insert(withdrawalRequests).values({ ...input, status: "pending" }).returning();
+    await tx.insert(auditEvents).values({ actorId: input.userId, action: "withdrawal.requested", targetType: "withdrawal_request", targetId: rows[0]?.id, metadata: JSON.stringify({ asset: input.asset, network: input.network, amount: input.amount }) });
+    return rows[0];
+  });
+}
+export async function listUserWithdrawals(userId: number) { const db = await getDb(); if (!db) return []; return db.select().from(withdrawalRequests).where(eq(withdrawalRequests.userId, userId)).orderBy(desc(withdrawalRequests.createdAt)); }
+export async function listAllWithdrawals() {
+  const db = await getDb(); if (!db) return [];
+  return db.select({ request: withdrawalRequests, email: users.email, name: users.name }).from(withdrawalRequests).leftJoin(users, eq(withdrawalRequests.userId, users.id)).orderBy(desc(withdrawalRequests.createdAt));
+}
+export async function reviewWithdrawal(id: number, adminId: number, decision: "approved" | "rejected", note?: string) {
+  const db = await getDb(); if (!db) throw new Error("Database unavailable");
+  return db.transaction(async tx => {
+    const current = (await tx.select().from(withdrawalRequests).where(eq(withdrawalRequests.id, id)).limit(1))[0];
+    if (!current) throw new Error("Withdrawal request not found");
+    if (current.status !== "pending") throw new Error("Withdrawal is no longer pending");
+    const rows = await tx.update(withdrawalRequests).set({ status: decision, reviewNote: note ?? null, reviewedBy: adminId, reviewedAt: new Date() }).where(eq(withdrawalRequests.id, id)).returning();
+    await tx.insert(auditEvents).values({ actorId: adminId, action: `withdrawal.${decision}`, targetType: "withdrawal_request", targetId: id, metadata: JSON.stringify({ note: note ?? null }) });
+    return rows[0];
+  });
+}
+export async function markWithdrawalSent(id: number, adminId: number, txHash: string) {
+  const db = await getDb(); if (!db) throw new Error("Database unavailable");
+  return db.transaction(async tx => {
+    const current = (await tx.select().from(withdrawalRequests).where(eq(withdrawalRequests.id, id)).limit(1))[0];
+    if (!current) throw new Error("Withdrawal request not found");
+    if (current.status !== "approved") throw new Error("Only approved withdrawals can be marked sent");
+    const rows = await tx.update(withdrawalRequests).set({ status: "sent", txHash, sentAt: new Date() }).where(eq(withdrawalRequests.id, id)).returning();
+    await tx.insert(auditEvents).values({ actorId: adminId, action: "withdrawal.sent", targetType: "withdrawal_request", targetId: id, metadata: JSON.stringify({ txHash }) });
+    return rows[0];
+  });
+}
