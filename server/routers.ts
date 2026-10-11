@@ -5,11 +5,11 @@ import { COOKIE_NAME } from "../shared/const.js";
 import { clearSession, hashPassword, setSessionCookie, signInWithPassword } from "./auth.js";
 import { getSessionCookieOptions } from "./_core/cookies.js";
 import { ENV } from "./_core/env.js";
-import { findTestnetOption, isValidTestnetAddress } from "../shared/testnets.js";
+import { findTestnetOption, isValidTestnetAddress, isValidTestnetTxHash } from "../shared/testnets.js";
 import { systemRouter } from "./_core/systemRouter.js";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc.js";
 import { getLiveMarketSnapshot } from "./marketData.js";
-import { approveAdjustmentRequest, bootstrapAdminByEmail, createAdjustmentRequest, createDepositIntent, createLocalUser, getReceivingAddress, getUserDashboard, getUserByEmail, listAllDeposits, listReceivingAddresses, listUserActivity, listUserDeposits, getSubscription, requestSubscription, updateUserProfile, upsertReceivingAddress } from "./db.js";
+import { approveAdjustmentRequest, bootstrapAdminByEmail, createAdjustmentRequest, createDepositIntent, createLocalUser, getReceivingAddress, getUserDashboard, getUserByEmail, listAllDeposits, listReceivingAddresses, listUserActivity, listUserDeposits, getSubscription, requestSubscription, updateUserProfile, upsertReceivingAddress, createWithdrawalRequest, listUserWithdrawals, listAllWithdrawals, reviewWithdrawal, markWithdrawalSent } from "./db.js";
 
 const currency = z.enum(["USD", "EUR", "GBP", "NGN", "CAD", "AUD"]);
 const credentials = z.object({ email: z.string().email().max(320), password: z.string().min(8).max(128) });
@@ -79,7 +79,14 @@ export const appRouter = router({
       return createDepositIntent({ userId: ctx.user.id, asset: input.asset, network: input.network, address: address.address, memo: address.memo, status: "under_review", confirmations: 0, amount: input.amount, txHash: input.txHash });
     }),
   }),
+  withdrawals: router({
+    listMine: protectedProcedure.query(({ ctx }) => listUserWithdrawals(ctx.user.id)),
+    create: protectedProcedure.input(z.object({ asset: z.string().min(2).max(24), network: z.string().min(2).max(40), address: z.string().trim().min(8).max(160), amount: z.string().regex(/^\d+(\.\d{1,12})?$/).refine(v => Number(v) > 0, { message: "Enter an amount above zero." }) }).refine(v => !!findTestnetOption(v.asset, v.network), { message: "Withdrawals are testnet-only. Choose a supported testnet asset and network." }).refine(v => isValidTestnetAddress(v.network, v.address), { message: "That address is not valid for the selected testnet.", path: ["address"] })).mutation(({ ctx, input }) => createWithdrawalRequest({ userId: ctx.user.id, ...input })),
+  }),
   admin: router({
+    listWithdrawals: adminProcedure.query(() => listAllWithdrawals()),
+    reviewWithdrawal: adminProcedure.input(z.object({ id: z.number().int().positive(), decision: z.enum(["approved", "rejected"]), note: z.string().max(1000).optional() })).mutation(async ({ ctx, input }) => { try { return await reviewWithdrawal(input.id, ctx.user.id, input.decision, input.note); } catch (error) { throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Unable to review withdrawal" }); } }),
+    markWithdrawalSent: adminProcedure.input(z.object({ id: z.number().int().positive(), network: z.string(), txHash: z.string().trim().min(10).max(160) }).refine(v => isValidTestnetTxHash(v.network, v.txHash), { message: "That transaction hash doesn't match the testnet format." })).mutation(async ({ ctx, input }) => { try { return await markWithdrawalSent(input.id, ctx.user.id, input.txHash); } catch (error) { throw new TRPCError({ code: "BAD_REQUEST", message: error instanceof Error ? error.message : "Unable to update withdrawal" }); } }),
     listDeposits: adminProcedure.query(() => listAllDeposits()),
     listReceivingAddresses: adminProcedure.query(() => listReceivingAddresses()),
     setReceivingAddress: adminProcedure.input(z.object({ asset: z.string().min(2).max(24), network: z.string().min(2).max(40), address: z.string().min(8).max(160), memo: z.string().max(128).optional() }).refine(v => !!findTestnetOption(v.asset, v.network), { message: "Deposits are testnet-only. Choose a supported testnet asset and network." }).refine(v => isValidTestnetAddress(v.network, v.address), { message: "That address is not valid for the selected testnet." })).mutation(({ ctx, input }) => upsertReceivingAddress({ ...input, updatedBy: ctx.user.id })),
