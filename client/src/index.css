@@ -316,3 +316,10 @@ main > *:not(.ambient-grid):not(.noise-layer) { position: relative; z-index: 2; 
 .auth-brand-lockup .brand-mark { width: 34px; height: 34px; display: grid; place-items: center; overflow: hidden; border: 1px solid rgba(69,230,255,.55); border-radius: 10px; background: rgba(22,29,73,.92); box-shadow: 0 0 25px rgba(69,230,255,.2); }
 .auth-brand-lockup .brand-mark img { display: block; width: 29px; height: 29px; object-fit: contain; }
 @media (max-width: 600px) { .auth-brand-lockup { font-size: 13px; } .auth-brand-lockup .brand-mark { width: 31px; height: 31px; } .auth-brand-lockup .brand-mark img { width: 26px; height: 26px; } }
+
+/* Withdrawal review */
+.withdraw-history { margin-top: 18px; display: grid; gap: 8px; }
+.withdraw-review-row { flex-wrap: wrap; gap: 10px; }
+.withdraw-review-row .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; opacity: .8; }
+.withdraw-actions { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+.admin-inline-input { flex: 1 1 220px; min-width: 0; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.12); border-radius: 8px; color: inherit; padding: 8px 10px; font: inherit; }
