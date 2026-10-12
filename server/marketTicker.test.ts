@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { combineTicker, tickerDirection } from "./marketData";
+import { combineTicker, parseKrakenTicker, tickerDirection } from "./marketData";
 
 describe("public market ticker", () => {
   it("derives direction from the change label", () => {
@@ -25,5 +25,13 @@ describe("public market ticker", () => {
     expect(result.items).toHaveLength(0);
     expect(result.updatedAt).toBeNull();
     expect(result.error).toBe("Provider returned 429");
+  });
+
+  it("parses Kraken tickers into real prices with change from the daily open", () => {
+    const items = parseKrakenTicker(["BTC", "PEPE", "DOGE"], { error: [], result: { XXBTZUSD: { c: ["80000.0", "1"], o: "79000.0" }, PEPEUSD: { c: ["0.000004", "1"], o: "0.000005" }, XDGUSD: { c: ["0.087", "1"], o: "0.087" } } });
+    expect(items.map(i => i.symbol)).toEqual(["BTC/USD", "PEPE/USD", "DOGE/USD"]);
+    expect(items[0].change).toBe("+1.27%");
+    expect(items[1].change).toBe("-20.00%");
+    expect(items[0].source).toBe("Kraken");
   });
 });
