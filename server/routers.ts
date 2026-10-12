@@ -14,10 +14,16 @@ import { approveAdjustmentRequest, bootstrapAdminByEmail, createAdjustmentReques
 const currency = z.enum(["USD", "EUR", "GBP", "NGN", "CAD", "AUD"]);
 const credentials = z.object({ email: z.string().email().max(320), password: z.string().min(8).max(128) });
 
+function publicUser<T extends Record<string, unknown> | null | undefined>(user: T) {
+  if (!user) return user ?? null;
+  const { passwordHash: _omit, ...safe } = user as Record<string, unknown>;
+  return safe as Omit<NonNullable<T>, "passwordHash">;
+}
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query(opts => publicUser(opts.ctx.user)),
     register: publicProcedure.input(z.object({ name: z.string().trim().min(2).max(120), email: z.string().email().max(320), password: z.string().min(8).max(128), preferredCurrency: currency })).mutation(async ({ ctx, input }) => {
       if (await getUserByEmail(input.email)) throw new TRPCError({ code: "CONFLICT", message: "An account with this email already exists" });
       const user = await createLocalUser({ name: input.name, email: input.email, passwordHash: await hashPassword(input.password), preferredCurrency: input.preferredCurrency });
@@ -25,7 +31,7 @@ export const appRouter = router({
       const signedIn = await signInWithPassword(input.email, input.password);
       if (!signedIn) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to start account session" });
       setSessionCookie(ctx.req, ctx.res, signedIn.token);
-      return signedIn.user;
+      return publicUser(signedIn.user);
     }),
     adminCodeLogin: publicProcedure.input(z.object({ accessCode: z.string().min(6).max(128) })).mutation(async ({ ctx, input }) => {
       if (!ENV.adminAccessCode) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Administrator access is not configured" });
@@ -40,7 +46,7 @@ export const appRouter = router({
       const signedIn = await signInWithPassword(ENV.adminEmail, input.accessCode);
       if (!signedIn) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to start administrator session" });
       setSessionCookie(ctx.req, ctx.res, signedIn.token);
-      return signedIn.user;
+      return publicUser(signedIn.user);
     }),
     login: publicProcedure.input(credentials).mutation(async ({ ctx, input }) => {
       let signedIn = await signInWithPassword(input.email, input.password);
@@ -53,7 +59,7 @@ export const appRouter = router({
       }
       if (!signedIn) throw new TRPCError({ code: "UNAUTHORIZED", message: "Email or password is incorrect" });
       setSessionCookie(ctx.req, ctx.res, signedIn.token);
-      return signedIn.user;
+      return publicUser(signedIn.user);
     }),
     logout: publicProcedure.mutation(async ({ ctx }) => { await clearSession(ctx.req, ctx.res); return { success: true } as const; }),
     updateCurrency: protectedProcedure.input(z.object({ preferredCurrency: currency })).mutation(({ ctx, input }) => updateUserProfile(ctx.user.id, input)),
