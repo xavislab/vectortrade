@@ -833,3 +833,5 @@ select option { background: var(--ink-2); color: var(--text); }
   .ticker-viewport { overflow-x: auto; mask-image: none; scrollbar-width: none; }
   .ticker-group + .ticker-group { display: none; }
 }
+
+.plan-card .plan-placeholder{color:var(--muted-foreground,#8b8fa3);font-style:italic;font-weight:500}
