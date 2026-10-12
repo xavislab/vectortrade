@@ -17,8 +17,8 @@ export default function WithdrawModal({ onClose, onNotify }: { onClose: () => vo
     onSuccess: () => { setSubmitted(true); history.refetch(); onNotify("Withdrawal request submitted for review."); },
     onError: err => setError(err.message),
   });
-  return <div className="deposit-overlay" onClick={onClose}><div className="deposit-modal" onClick={event => event.stopPropagation()}>
-    <div className="modal-heading"><div><p className="app-kicker">WITHDRAW / TESTNET</p><h2>{submitted ? "Withdrawal requested" : "Request withdrawal"}</h2></div><button className="icon-button" onClick={onClose}><X size={18} /></button></div>
+  return <div className="deposit-overlay" onClick={onClose}><div className="deposit-modal" role="dialog" aria-modal="true" onClick={event => event.stopPropagation()}>
+    <div className="modal-heading"><div><p className="app-kicker">WITHDRAW / TESTNET</p><h2>{submitted ? "Withdrawal requested" : "Request withdrawal"}</h2></div><button className="icon-button" aria-label="Close" onClick={onClose}><X size={18} /></button></div>
     {submitted ? <div className="deposit-state"><CheckCircle2 size={30} /><h3>Request received</h3><p>Your {amount} {asset} withdrawal on {network} is <b>pending review</b>. Once approved, it's sent to your address and the transaction hash appears in your history.</p><button className="modal-primary" onClick={onClose}>RETURN TO WALLET</button></div> : <>
       <label className="field-label">TESTNET ASSET<select value={choice} onChange={event => setChoice(Number(event.target.value))}>{TESTNET_DEPOSIT_OPTIONS.map((option, index) => <option key={`${option.asset}-${option.network}`} value={index}>{option.asset} · {option.network}</option>)}</select></label>
       <label className="field-label">AMOUNT<input value={amount} onChange={event => setAmount(event.target.value)} inputMode="decimal" placeholder="0.00" /></label>

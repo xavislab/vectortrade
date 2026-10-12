@@ -16,6 +16,31 @@ function money(value: unknown) { const n = Number(value); if (!Number.isFinite(n
 function percent(value: unknown) { const n = Number(value); if (!Number.isFinite(n)) return "—"; return `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`; }
 async function json(url: string, init?: RequestInit) { const response = await fetch(url, { ...init, signal: AbortSignal.timeout(8000), headers: { Accept: "application/json", ...(init?.headers || {}) } }); if (!response.ok) throw new Error(`Provider returned ${response.status}`); return response.json(); }
 
+
+// Kraken public ticker: keyless, exchange-traded USD prices. Change is measured from Kraken's daily open (00:00 UTC).
+const krakenPairs: Record<string, string> = { BTC: "XBTUSD", ETH: "ETHUSD", SOL: "SOLUSD", XRP: "XRPUSD", PEPE: "PEPEUSD", BONK: "BONKUSD", WIF: "WIFUSD", DOGE: "XDGUSD" };
+export function parseKrakenTicker(symbolsIn: string[], body: { error?: string[]; result?: Record<string, { c?: string[]; o?: string }> }): MarketItem[] {
+  const result = body.result || {};
+  const entries = Object.entries(result);
+  return symbolsIn.map(symbol => {
+    const pair = krakenPairs[symbol]; if (!pair) return null;
+    const alt = pair.replace("XBT", "XXBTZ").replace("ETHUSD", "XETHZUSD").replace("XRPUSD", "XXRPZUSD");
+    const hit = result[pair] || result[alt] || entries.find(([k]) => k.endsWith(pair.slice(-3)) && k.includes(pair.slice(0, pair.length - 3)))?.[1];
+    const last = Number(hit?.c?.[0]); const open = Number(hit?.o);
+    if (!Number.isFinite(last) || last <= 0) return null;
+    const change = Number.isFinite(open) && open > 0 ? ((last - open) / open) * 100 : null;
+    return { symbol: `${symbol}/USD`, price: money(last), change: change === null ? "—" : percent(change), source: "Kraken", url: `https://pro.kraken.com/app/trade/${symbol.toLowerCase()}-usd` } as MarketItem;
+  }).filter(Boolean) as MarketItem[];
+}
+async function krakenSnapshot(market: MarketKey): Promise<LiveMarketResult> {
+  const list = symbols[market].filter(s => krakenPairs[s]);
+  const body = await json(`https://api.kraken.com/0/public/Ticker?pair=${list.map(s => krakenPairs[s]).join(",")}`) as { error?: string[]; result?: Record<string, { c?: string[]; o?: string }> };
+  if (body.error?.length) throw new Error(`Kraken: ${body.error.join(", ")}`);
+  const items = parseKrakenTicker(list, body);
+  if (!items.length) throw new Error("No prices were returned by Kraken");
+  return { market, items, updatedAt: new Date().toISOString(), source: "Kraken" };
+}
+
 async function dexSnapshot(market: MarketKey): Promise<LiveMarketResult> {
   const querySymbols = symbols[market];
   const results = await Promise.all(querySymbols.map(async symbol => {
@@ -47,10 +72,37 @@ async function twelveSnapshot(market: MarketKey): Promise<LiveMarketResult> {
 export async function getLiveMarketSnapshot(market: MarketKey): Promise<LiveMarketResult> {
   const hit = cache.get(market); if (hit && hit.expiresAt > Date.now()) return hit.value;
   try {
-    const value = market === "crypto" || market === "memecoins" ? await dexSnapshot(market) : await twelveSnapshot(market);
+    const value = market === "crypto" || market === "memecoins" ? await krakenSnapshot(market).catch(() => dexSnapshot(market)) : await twelveSnapshot(market);
     cache.set(market, { expiresAt: Date.now() + TTL_MS, value }); return value;
   } catch (error) {
     const value = { market, items: [], updatedAt: new Date().toISOString(), source: market === "crypto" || market === "memecoins" ? "DEX Screener" : "Twelve Data", error: error instanceof Error ? error.message : "Market provider unavailable" };
     cache.set(market, { expiresAt: Date.now() + 5_000, value }); return value;
   }
+}
+
+export type TickerDirection = "up" | "down" | "flat";
+export type TickerItem = { symbol: string; price: string; change: string; direction: TickerDirection; market: MarketKey; source: string };
+export type TickerSourceStatus = { market: MarketKey; source: string; ok: boolean; updatedAt: string; error?: string };
+export type TickerResult = { items: TickerItem[]; updatedAt: string | null; sources: TickerSourceStatus[]; error?: string };
+
+export function tickerDirection(change: string): TickerDirection {
+  const n = Number(change.replace(/[^0-9.+\-−]/g, "").replace("−", "-"));
+  if (!/\d/.test(change) || !Number.isFinite(n) || n === 0) return "flat";
+  return n > 0 ? "up" : "down";
+}
+
+/** Combine cached live snapshots into one public ticker feed. Forex/stocks are only included when a Twelve Data key exists. */
+export function combineTicker(snapshots: LiveMarketResult[]): TickerResult {
+  const sources: TickerSourceStatus[] = snapshots.map(s => ({ market: s.market, source: s.source, ok: !s.error && s.items.length > 0, updatedAt: s.updatedAt, error: s.error }));
+  const items: TickerItem[] = snapshots.flatMap(s => s.error ? [] : s.items.map(item => ({ symbol: item.symbol, price: item.price, change: item.change, direction: tickerDirection(item.change), market: s.market, source: item.source })));
+  const okTimes = sources.filter(s => s.ok).map(s => Date.parse(s.updatedAt)).filter(Number.isFinite);
+  const updatedAt = okTimes.length ? new Date(Math.min(...okTimes)).toISOString() : null;
+  return { items, updatedAt, sources, error: items.length ? undefined : (sources.find(s => s.error)?.error || "No live market data is available right now") };
+}
+
+export async function getTickerSnapshot(): Promise<TickerResult> {
+  const markets: MarketKey[] = ["crypto", "memecoins"];
+  if (ENV.twelveDataApiKey) markets.push("forex", "stocks");
+  const snapshots = await Promise.all(markets.map(market => getLiveMarketSnapshot(market)));
+  return combineTicker(snapshots);
 }
