@@ -54,3 +54,30 @@ export async function getLiveMarketSnapshot(market: MarketKey): Promise<LiveMark
     cache.set(market, { expiresAt: Date.now() + 5_000, value }); return value;
   }
 }
+
+export type TickerDirection = "up" | "down" | "flat";
+export type TickerItem = { symbol: string; price: string; change: string; direction: TickerDirection; market: MarketKey; source: string };
+export type TickerSourceStatus = { market: MarketKey; source: string; ok: boolean; updatedAt: string; error?: string };
+export type TickerResult = { items: TickerItem[]; updatedAt: string | null; sources: TickerSourceStatus[]; error?: string };
+
+export function tickerDirection(change: string): TickerDirection {
+  const n = Number(change.replace(/[^0-9.+\-−]/g, "").replace("−", "-"));
+  if (!/\d/.test(change) || !Number.isFinite(n) || n === 0) return "flat";
+  return n > 0 ? "up" : "down";
+}
+
+/** Combine cached live snapshots into one public ticker feed. Forex/stocks are only included when a Twelve Data key exists. */
+export function combineTicker(snapshots: LiveMarketResult[]): TickerResult {
+  const sources: TickerSourceStatus[] = snapshots.map(s => ({ market: s.market, source: s.source, ok: !s.error && s.items.length > 0, updatedAt: s.updatedAt, error: s.error }));
+  const items: TickerItem[] = snapshots.flatMap(s => s.error ? [] : s.items.map(item => ({ symbol: item.symbol, price: item.price, change: item.change, direction: tickerDirection(item.change), market: s.market, source: item.source })));
+  const okTimes = sources.filter(s => s.ok).map(s => Date.parse(s.updatedAt)).filter(Number.isFinite);
+  const updatedAt = okTimes.length ? new Date(Math.min(...okTimes)).toISOString() : null;
+  return { items, updatedAt, sources, error: items.length ? undefined : (sources.find(s => s.error)?.error || "No live market data is available right now") };
+}
+
+export async function getTickerSnapshot(): Promise<TickerResult> {
+  const markets: MarketKey[] = ["crypto", "memecoins"];
+  if (ENV.twelveDataApiKey) markets.push("forex", "stocks");
+  const snapshots = await Promise.all(markets.map(market => getLiveMarketSnapshot(market)));
+  return combineTicker(snapshots);
+}

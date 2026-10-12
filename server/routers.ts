@@ -8,7 +8,7 @@ import { ENV } from "./_core/env.js";
 import { findTestnetOption, isValidTestnetAddress, isValidTestnetTxHash } from "../shared/testnets.js";
 import { systemRouter } from "./_core/systemRouter.js";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc.js";
-import { getLiveMarketSnapshot } from "./marketData.js";
+import { getLiveMarketSnapshot, getTickerSnapshot } from "./marketData.js";
 import { approveAdjustmentRequest, bootstrapAdminByEmail, createAdjustmentRequest, createDepositIntent, createLocalUser, getReceivingAddress, getUserDashboard, getUserByEmail, listAllDeposits, listReceivingAddresses, listUserActivity, listUserDeposits, getSubscription, requestSubscription, updateUserProfile, upsertReceivingAddress, createWithdrawalRequest, listUserWithdrawals, listAllWithdrawals, reviewWithdrawal, markWithdrawalSent } from "./db.js";
 
 const currency = z.enum(["USD", "EUR", "GBP", "NGN", "CAD", "AUD"]);
@@ -71,6 +71,7 @@ export const appRouter = router({
   }),
   marketData: router({
     snapshot: protectedProcedure.input(z.object({ market: z.enum(["crypto", "forex", "stocks", "memecoins"]) })).query(({ input }) => getLiveMarketSnapshot(input.market)),
+    ticker: publicProcedure.query(() => getTickerSnapshot()),
   }),
   subscriptions: router({
     current: protectedProcedure.query(({ ctx }) => getSubscription(ctx.user.id)),
